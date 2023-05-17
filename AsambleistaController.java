@@ -8,6 +8,10 @@ public class AsambleistaController {
 
     private static EntityManager em = null;
 
+    public AsambleistaController(){
+        getEm("pu-pa");
+    }
+
     private void getEm(String puName) {
         if(em == null){
             EntityManagerFactory emf = Persistence.createEntityManagerFactory(puName);
