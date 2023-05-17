@@ -1,0 +1,65 @@
+package org.example;
+import javax.persistence.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.Random;
+
+
+public class AsambleistaRunnable {
+
+    private static final int NUM_INSERTS = 10; // Número de filas a insertar en cada hilo
+    private final EntityManager entityManager;
+
+    public AsambleistaRunnable(EntityManager entityManager) {
+        this.entityManager = entityManager;
+    }
+
+    public void run() {
+        entityManager.getTransaction().begin();
+
+        // Ejemplo de inserción de filas en la tabla ASAMBLEISTA usando JDBC
+        try (Connection connection = DriverManager.getConnection("jdbc:h2://localhost:3306/examenParcial", "", "")) {
+
+            Long numVotosRegistrados = entityManager.createQuery("SELECT COUNT(a) FROM Asambleista a", Long.class)
+                    .getSingleResult();
+
+            Random random = new Random();
+
+            if (numVotosRegistrados >= NUM_INSERTS) {
+                entityManager.getTransaction().rollback();
+                return; // Salir del hilo si todos los votos ya han sido registrados
+            }
+
+            String insertQuery = "INSERT INTO ASAMBLEISTA (ID_ASAMBLEISTA, REGION, VOTO) VALUES (?, ?, ?)";
+            PreparedStatement preparedStatement = connection.prepareStatement(insertQuery);
+
+            for (int i = 0; i < NUM_INSERTS; i++) {
+                preparedStatement.setInt(1, i);
+                preparedStatement.setString(2, "Región " + i);
+                
+                int randomNumber = random.nextInt(100) + 1;
+
+                String voto;
+                if (randomNumber >= 1 && randomNumber <= 24) {
+                    voto = "S";
+                } else if (randomNumber >= 25 && randomNumber <= 49) {
+                    voto = "N";
+                } else {
+                    voto = "A";
+                }
+
+                preparedStatement.setString(3, voto);
+                preparedStatement.executeUpdate();
+            }
+
+            entityManager.getTransaction().commit();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            entityManager.getTransaction().rollback();
+        }
+
+    }
+}
+
